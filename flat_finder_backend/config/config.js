@@ -9,6 +9,12 @@ require('dotenv').config();
             jwt: process.env.JWT_SECRET || "mysecret"
         },
         jwtExpiresIn: process.env.JWT_EXPIRES_IN || "1h",
+        email: {
+            username: process.env.EMAIL_USERNAME,
+            password: process.env.EMAIL_PASSWORD,
+            host: process.env.EMAIL_HOST,
+            port: process.env.EMAIL_PORT
+        }
     };
 
 module.exports = config;

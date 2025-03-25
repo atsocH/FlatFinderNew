@@ -3,6 +3,8 @@ const Flat = require('../models/flatModel');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const config = require('../config/config');
+const sendEmail = require('../utils/email');
+const crypto = require('crypto');
 
 exports.signup = async function(req, res, next) {
     try {
@@ -163,5 +165,87 @@ exports.removeFlatFromFavorites = async (req, res) => {
     } catch (err) {
         console.error('Error removing flat from favorites:', err);
         res.status(500).json({ message: 'Internal server error' });
+    }
+};
+
+exports.forgotPassword = async (req, res) => {
+    try {
+        const user = await User.findOne({ email: req.body.email });
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        const resetToken = crypto.randomBytes(32).toString('hex');
+        user.passwordResetToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+        user.passwordResetExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+        await user.save();
+
+        const resetURL = `http://localhost:3000/reset-password/${resetToken}`;
+        const message = `Forgot your password? Click in the link below :${resetURL}.\nIf you didn't forget your password, please ignore this email!`;
+
+        await sendEmail({
+            email: user.email,
+            subject: 'Your password reset token (valid for 10 minutes)',
+            message
+        });
+
+        res.status(200).json({ message: 'Token sent to email!' });
+    } catch (err) {
+        console.error('Error in forgotPassword:', err);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+};
+
+exports.resetPassword = async (req, res, next) => {
+    try {
+        console.log('Reset password request received');
+        const hashedToken = crypto.createHash('sha256').update(req.params.resetToken).digest('hex');
+        console.log('Hashed token:', hashedToken);
+        const user = await User.findOne({
+            passwordResetToken: hashedToken,
+            passwordResetExpires: { $gt: Date.now() }
+        });
+
+        if (!user) {
+            console.log('Token is invalid or has expired');
+            return res.status(400).json({
+                status: 'fail',
+                message: 'Token is invalid or has expired'
+            });
+        }
+
+        user.password = req.body.password;
+        user.passwordResetToken = undefined;
+        user.passwordResetExpires = undefined;
+        await user.save();
+
+        const token = signToken(user._id);
+        res.status(200).json({
+            status: 'success',
+            token: token
+        });
+    } catch (err) {
+        console.error('Error resetting password:', err);
+        res.status(500).json({
+            status: 'fail',
+            message: err.message
+        });
+    }
+};
+exports.getUserFlats = async (req, res, next) => {
+    try {
+        const flats = await Flat.find({ ownerId: req.user._id });
+        res.status(200).json({
+            status: 'success',
+            data: {
+                flats
+            }
+        });
+    } catch (err) {
+        console.error('Error fetching user flats:', err);
+        res.status(500).json({
+            status: 'fail',
+            message: err.message
+        });
     }
 };

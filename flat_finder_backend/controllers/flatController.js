@@ -13,7 +13,7 @@ exports.getAllFlats = async (req, res) => {
 
 exports.createFlat = async (req, res) => {
     try {
-        const ownerId = req.user._id; // Assuming req.user contains the authenticated user
+        const ownerId = req.user._id;
         const { title, description, city, streetName, streetNumber, areaSize, yearBuilt, listingType, sellPrice, rentPrice, dateAvailable, photos } = req.body;
 
         const flat = new Flat({
@@ -107,16 +107,6 @@ exports.addFlatToFavorites = async (req, res) => {
         res.status(200).json({ message: 'Flat added to favorites' });
     } catch (err) {
         console.error('Error adding flat to favorites:', err);
-        res.status(500).json({ message: 'Internal server error' });
-    }
-};
-
-exports.deleteAllFlats = async (req, res) => {
-    try {
-        await Flat.deleteMany();
-        res.status(200).json({ message: 'All flats deleted' });
-    } catch (err) {
-        console.error('Error deleting all flats:', err);
         res.status(500).json({ message: 'Internal server error' });
     }
 };

@@ -6,7 +6,7 @@ const { tokenMiddleware, ownerOrAdminMiddleware } = require('../middleware/authM
 router.get('/', flatController.getAllFlats);
 router.post('/', tokenMiddleware, flatController.createFlat);
 router.get('/:flatId', flatController.getFlatById);
-router.get('/owner/:ownerId', flatController.getFlatByOwnerId);
+router.get('/:ownerId', tokenMiddleware,flatController.getFlatByOwnerId);
 router.patch('/:flatId', tokenMiddleware, ownerOrAdminMiddleware, flatController.updateFlat);
 router.put('/:flatId', tokenMiddleware, ownerOrAdminMiddleware, flatController.updateFlat);
 router.delete('/:flatId', tokenMiddleware, ownerOrAdminMiddleware, flatController.deleteFlat);

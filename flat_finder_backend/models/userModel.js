@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const { isEmail } = require('validator');
 
 const validatePassword = (password) => {
@@ -57,7 +58,9 @@ const userSchema = new mongoose.Schema({
     updated: {
         type: Date,
         default: Date.now
-    }
+    },
+    passwordResetToken: String,
+    passwordResetExpires: Date
 });
 
 userSchema.pre('save', async function(next) {
@@ -66,7 +69,6 @@ userSchema.pre('save', async function(next) {
     }
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
-    console.log('Hashed password in pre-save:', this.password);
     next();
 });
 
@@ -75,5 +77,15 @@ userSchema.pre('save', function(next) {
     next();
 });
 
-module.exports = mongoose.model('User', userSchema);
+userSchema.methods.createPasswordResetToken = function() {
+    const resetToken = crypto.randomBytes(32).toString('hex');
 
+    this.passwordResetToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+    this.passwordResetExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+
+    return resetToken;
+};
+
+const User = mongoose.model('User', userSchema);
+
+module.exports = User;
